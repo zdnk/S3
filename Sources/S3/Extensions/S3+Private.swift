@@ -1,3 +1,10 @@
+//
+//  S3+Private.swift
+//  S3
+//
+//  Created by Ondrej Rafaj on 19/04/2018.
+//
+
 import Foundation
 import Vapor
 import HTTP
@@ -8,7 +15,7 @@ extension S3 {
     func make(request url: URL, method: HTTPMethod, headers: HTTPHeaders, data: Data? = nil, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy, on container: Container) throws -> Future<Response> {
         var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method.string
-        request.httpBody = data ?? Data()
+        request.httpBody = data
         headers.forEach { key, val in
             request.addValue(val, forHTTPHeaderField: key.description)
         }
@@ -32,7 +39,7 @@ extension S3 {
                 return
             }
             
-            let response = S3.convertFromFoundationResponse(httpResponse, data: data, on: container)
+            let response = S3.convert(foundationResponse: httpResponse, data: data, on: container)
             
             promise.succeed(result: Response(http: response, using: container))
         }).resume()
@@ -41,15 +48,15 @@ extension S3 {
     }
     
     /// Convert given response and data to HTTPResponse from Vapors HTTP package
-    static func convertFromFoundationResponse(_ httpResponse: HTTPURLResponse, data: Data?, on worker: Worker) -> HTTPResponse {
-        var res = HTTPResponse(status: .init(statusCode: httpResponse.statusCode))
+    static func convert(foundationResponse httpResponse: HTTPURLResponse, data: Data?, on worker: Worker) -> HTTPResponse {
+        var response = HTTPResponse(status: .init(statusCode: httpResponse.statusCode))
         if let data = data {
-            res.body = HTTPBody(data: data)
+            response.body = HTTPBody(data: data)
         }
         for (key, value) in httpResponse.allHeaderFields {
-            res.headers.replaceOrAdd(name: "\(key)", value: "\(value)")
+            response.headers.replaceOrAdd(name: "\(key)", value: "\(value)")
         }
-        return res
+        return response
     }
     
 }
